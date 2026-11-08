@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prosecure - ระบบจัดทำรายการสั่งซื้ออุปกรณ์งานติดตั้ง</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f3ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#1e1b4b',
+                        },
+                        slate: {
+                            850: '#151e2e',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Sarabun', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts: Inter & Sarabun for Thai typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Printable PDF / Document Styling */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            @page {
+                size: A4;
+                margin: 12mm;
+            }
+        }
+
+        /* Glassmorphism subtle touches */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 antialiased flex flex-col bg-slate-100">
+
+    <!-- MAIN HEADER / NAVIGATION -->
+    <header class="no-print bg-slate-900 text-white sticky top-0 z-30 shadow-md border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo & Title -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide flex items-center gap-2">
+                        PROSECURE <span class="bg-indigo-500/20 text-indigo-300 text-xs px-2 py-0.5 rounded-full border border-indigo-400/30 font-medium">Ordering System</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">ระบบจัดทำรายการสั่งซื้ออุปกรณ์งานติดตั้ง</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Controls & Actions -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="openModal('customItemModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm px-3.5 py-2 rounded-xl font-medium transition shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span class="hidden sm:inline">เพิ่มอุปกรณ์พิเศษ</span>
+                    <span class="sm:hidden">เพิ่มสินค้า</span>
+                </button>
+                <button onclick="switchTab('document')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs sm:text-sm px-3 py-2 rounded-xl font-medium transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-invoice text-indigo-400"></i>
+                    <span>ดูเอกสาร PO</span>
+                </button>
+                <button onclick="exportCSV()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 text-xs sm:text-sm px-3 py-2 rounded-xl font-medium transition flex items-center gap-1.5" title="Export CSV">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span class="hidden md:inline">Export CSV</span>
+                </button>
+                <button onclick="copySummaryText()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs sm:text-sm px-3 py-2 rounded-xl font-medium transition flex items-center gap-1.5" title="คัดลอกสรุปสำหรับ LINE/Email">
+                    <i class="fa-solid fa-copy"></i>
+                    <span class="hidden lg:inline">สรุปรายการ</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- APP NAVIGATION BAR & TAB CONTROL -->
+    <div class="no-print bg-white border-b border-slate-200 shadow-sm sticky top-16 z-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between overflow-x-auto">
+            <div class="flex space-x-1 py-2" id="navigationTabs">
+                <button id="tabBtnCatalog" onclick="switchTab('workspace')" class="px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
+                    <i class="fa-solid fa-cubes"></i>
+                    <span>พื้นที่ทำงานสั่งซื้อ</span>
+                </button>
+                <button id="tabBtnDoc" onclick="switchTab('document')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i>
+                    <span>พิมพ์ใบสั่งซื้อ (Print A4)</span>
+                </button>
+            </div>
+
+            <!-- Project Quick Metadata Trigger -->
+            <div class="hidden md:flex items-center space-x-2 text-xs text-slate-500 py-2">
+                <span class="flex items-center gap-1"><i class="fa-regular fa-building text-slate-400"></i> <strong class="text-slate-700" id="headerProjectName">โครงการ: ติดตั้งระบบ CCTV & Network</strong></span>
+                <span class="text-slate-300">|</span>
+                <span class="flex items-center gap-1"><i class="fa-solid fa-hashtag text-slate-400"></i> <span id="headerPoNo">PO-202611-001</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN BODY CONTENT AREA -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- WORKSPACE TAB CONTENT (Grid layout: Left Catalog, Right Order List) -->
+        <div id="workspaceView" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- LEFT COLUMN: PRESET CATALOG MANAGEMENT (5 Cols on LG) -->
+            <section class="lg:col-span-5 flex flex-col space-y-4">
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 flex flex-col h-full space-y-4">
+                    
+                    <!-- Catalog Header & Preset CRUD Controls -->
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div>
+                            <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                                <i class="fa-solid fa-boxes-stacked text-indigo-600"></i>
+                                คลังอุปกรณ์มาตรฐาน (Presets)
+                            </h2>
+                            <p class="text-xs text-slate-500">เลือกอุปกรณ์เพื่อเพิ่มเข้าในรายการสั่งซื้อ</p>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <button onclick="openModal('presetModal')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs px-2.5 py-1.5 rounded-lg font-semibold transition border border-indigo-100 flex items-center gap-1">
+                                <i class="fa-solid fa-plus"></i> Preset ใหม่
+                            </button>
+                            <button onclick="confirmResetDefaults()" class="text-slate-400 hover:text-rose-500 text-xs p-1.5 rounded-lg transition" title="คืนค่าแค็ตล็อกเริ่มต้น">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search & Category Filters -->
+                    <div class="space-y-3">
+                        <!-- Search Box -->
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="catalogSearch" oninput="renderCatalog()" placeholder="ค้นหาชื่ออุปกรณ์, สเปก..." class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition outline-none">
+                        </div>
+
+                        <!-- Category Filter Chips -->
+                        <div class="flex gap-1.5 overflow-x-auto pb-1" id="categoryFilterContainer">
+                            <!-- Category Buttons dynamic render -->
+                        </div>
+                    </div>
+
+                    <!-- Catalog Grid Items List -->
+                    <div id="catalogList" class="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto max-h-[580px] pr-1">
+                        <!-- Catalog Item Cards will render here -->
+                    </div>
+
+                    <!-- Footnote / Status -->
+                    <div class="pt-2 text-xs text-slate-400 border-t border-slate-100 flex justify-between items-center">
+                        <span id="catalogCountText">แสดง 0 รายการ</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">LocalStorage Active</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: ORDER MANAGEMENT & METADATA (7 Cols on LG) -->
+            <section class="lg:col-span-7 flex flex-col space-y-4">
+
+                <!-- PROJECT METADATA COLLAPSIBLE CARD -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+                    <div class="flex justify-between items-center cursor-pointer" onclick="toggleMetadataForm()">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-clipboard-list text-indigo-600"></i>
+                            <h3 class="font-bold text-slate-800 text-sm">ข้อมูลโครงการ & เลขที่ใบสั่งซื้อ</h3>
+                        </div>
+                        <i id="metadataChevron" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                    </div>
+
+                    <div id="metadataForm" class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">ชื่อโครงการ / Site Name</label>
+                            <input type="text" id="inputProjectName" onchange="updateProjectMeta()" value="โครงการติดตั้งระบบ CCTV & Network" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">สถานที่ติดตั้ง / Location</label>
+                            <input type="text" id="inputLocation" onchange="updateProjectMeta()" value="อาคารอำนวยการ ชั้น 2 กทม." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">เลขที่ใบสั่งซื้อ / PO No.</label>
+                            <input type="text" id="inputPoNo" onchange="updateProjectMeta()" value="PO-202611-001" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">วันที่สั่งซื้อ / Order Date</label>
+                            <input type="date" id="inputDate" onchange="updateProjectMeta()" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">ผู้จัดทำรายการ / Prepared By</label>
+                            <input type="text" id="inputPreparedBy" onchange="updateProjectMeta()" value="นายวิศวกร ช่างติดตั้ง" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">ภาษีมูลค่าเพิ่ม / VAT (%)</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="inputVatRate" onchange="updateProjectMeta()" value="7" min="0" max="100" class="w-20 p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                                <label class="inline-flex items-center cursor-pointer text-slate-500">
+                                    <input type="checkbox" id="inputVatToggle" checked onchange="updateProjectMeta()" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 relative"></div>
+                                    <span class="ml-2 text-xs font-medium text-slate-600">คำนวณ VAT</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ORDER CART MAIN CARD -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 flex flex-col flex-1 overflow-hidden">
+                    
+                    <!-- Order Header & View Switcher -->
+                    <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+                        <div>
+                            <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                                <i class="fa-solid fa-cart-flatbed text-indigo-600"></i>
+                                รายการสั่งซื้ออุปกรณ์ (<span id="cartCountBadge" class="text-indigo-600">0</span>)
+                            </h2>
+                            <p class="text-xs text-slate-500">รายการที่จะจัดส่งและรวมในเอกสารสั่งซื้อ</p>
+                        </div>
+
+                        <!-- View Controls & Clear button -->
+                        <div class="flex items-center space-x-2">
+                            <!-- View Toggle (Table vs Grid) -->
+                            <div class="bg-slate-200/70 p-1 rounded-xl flex space-x-1">
+                                <button id="viewBtnTable" onclick="setCartView('table')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-indigo-600 shadow-sm transition">
+                                    <i class="fa-solid fa-list"></i> ตาราง
+                                </button>
+                                <button id="viewBtnGrid" onclick="setCartView('grid')" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
+                                    <i class="fa-solid fa-border-all"></i> การ์ด
+                                </button>
+                            </div>
+
+                            <button onclick="clearCart()" class="text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1.5 rounded-xl transition font-medium border border-rose-100 flex items-center gap-1">
+                                <i class="fa-solid fa-trash-can"></i> ล้างรายการ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- CART ITEMS CONTAINER (Scrollable) -->
+                    <div class="p-4 flex-1 overflow-y-auto max-h-[500px]" id="cartContainer">
+                        <!-- Dynamic render of Cart Table or Grid -->
+                    </div>
+
+                    <!-- FINANCIAL SUMMARY FOOTER -->
+                    <div class="p-4 sm:p-5 bg-slate-900 text-white border-t border-slate-800 rounded-b-2xl space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center sm:text-left">
+                            
+                            <!-- Subtotal -->
+                            <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50">
+                                <span class="text-xs text-slate-400 block font-medium">รวมเงินขั้นต้น (Subtotal)</span>
+                                <span class="text-lg font-bold text-slate-100" id="summarySubtotal">฿0.00</span>
+                            </div>
+
+                            <!-- VAT -->
+                            <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50">
+                                <span class="text-xs text-slate-400 block font-medium">ภาษีมูลค่าเพิ่ม <span id="summaryVatLabel">(7%)</span></span>
+                                <span class="text-lg font-bold text-indigo-300" id="summaryVat">฿0.00</span>
+                            </div>
+
+                            <!-- Grand Total -->
+                            <div class="bg-indigo-600/30 p-3 rounded-xl border border-indigo-500/40">
+                                <span class="text-xs text-indigo-300 block font-bold tracking-wider">จำนวนเงินรวมทั้งสิ้น</span>
+                                <span class="text-xl sm:text-2xl font-extrabold text-white" id="summaryGrandTotal">฿0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Bar Bottom -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs">
+                            <span class="text-slate-400"><i class="fa-solid fa-circle-info text-indigo-400 mr-1"></i>ระบบคำนวณราคาสรุปตาม VAT และแก้ไข inline ได้ทันที</span>
+                            <div class="flex gap-2">
+                                <button onclick="switchTab('document')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-md flex items-center gap-1.5">
+                                    <i class="fa-solid fa-print"></i> แสดงตัวอย่างเอกสาร (A4)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </div>
+
+        <!-- DOCUMENT / PRINT PREVIEW TAB CONTENT (Standard A4 Format) -->
+        <div id="documentView" class="hidden space-y-4">
+            
+            <!-- Document Controls Header (No Print) -->
+            <div class="no-print bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <button onclick="switchTab('workspace')" class="text-slate-500 hover:text-slate-800 bg-slate-100 p-2 rounded-xl transition">
+                        <i class="fa-solid fa-arrow-left"></i> กลับไปแก้ไขรายการ
+                    </button>
+                    <h3 class="font-bold text-slate-800 text-sm sm:text-base">ตัวอย่างเอกสารใบสั่งซื้ออุปกรณ์ (PO Preview)</h3>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm px-4 py-2 rounded-xl font-bold shadow-md transition flex items-center gap-2">
+                        <i class="fa-solid fa-print"></i> สั่งพิมพ์เอกสาร / บันทึกเป็น PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- OFFICIAL PRINTABLE PO SHEET (A4 Simulation Container) -->
+            <div class="bg-white p-8 sm:p-12 rounded-2xl shadow-lg border border-slate-200 max-w-4xl mx-auto text-slate-800 print:shadow-none print:border-none print:p-0 print:max-w-none" id="printableArea">
+                
+                <!-- CORPORATE HEADER -->
+                <div class="flex justify-between items-start border-b-2 border-slate-800 pb-6 mb-6">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold text-lg">
+                                P
+                            </div>
+                            <span class="text-2xl font-extrabold tracking-tight text-slate-900">PROSECURE</span>
+                        </div>
+                        <p class="text-xs text-slate-600 mt-1 font-semibold">บริษัท โปรซีเคียว โซลูชั่นส์ จำกัด (สำนักงานใหญ่)</p>
+                        <p class="text-[11px] text-slate-500">88/99 ถ.พัฒนาการ แขวงสวนหลวง เขตสวนหลวง กรุงเทพมหานคร 10250</p>
+                        <p class="text-[11px] text-slate-500">โทรศัพท์: 02-777-8888 | เลขประจำตัวผู้เสียภาษี: 0105562000000</p>
+                    </div>
+                    <div class="text-right">
+                        <h2 class="text-2xl font-black text-slate-900 tracking-wider">ใบสั่งซื้ออุปกรณ์</h2>
+                        <span class="text-xs font-bold text-indigo-600 tracking-wider uppercase">PURCHASE ORDER</span>
+                        <div class="mt-3 text-xs space-y-1 text-slate-600">
+                            <p><span class="font-semibold text-slate-800">เลขที่ / PO No:</span> <span id="docPoNo">PO-202611-001</span></p>
+                            <p><span class="font-semibold text-slate-800">วันที่ / Date:</span> <span id="docDate">08/11/2026</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROJECT METADATA DISPLAY -->
+                <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs mb-6">
+                    <div>
+                        <p class="text-slate-500 mb-0.5 font-medium">ชื่อโครงการ (Project Name):</p>
+                        <p class="font-bold text-slate-900 text-sm" id="docProjectName">โครงการติดตั้งระบบ CCTV & Network</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500 mb-0.5 font-medium">สถานที่ติดตั้ง (Site Location):</p>
+                        <p class="font-semibold text-slate-800" id="docLocation">อาคารอำนวยการ ชั้น 2 กทม.</p>
+                    </div>
+                </div>
+
+                <!-- ITEMS TABLE FOR PRINT -->
+                <table class="w-full text-xs text-left mb-6 border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900 text-white font-semibold">
+                            <th class="py-2.5 px-3 rounded-l-lg w-12 text-center">ลำดับ</th>
+                            <th class="py-2.5 px-3 w-16 text-center">รูป</th>
+                            <th class="py-2.5 px-3">รายการอุปกรณ์ / สเปก</th>
+                            <th class="py-2.5 px-3 text-center w-20">จำนวน</th>
+                            <th class="py-2.5 px-3 text-center w-16">หน่วย</th>
+                            <th class="py-2.5 px-3 text-right w-24">ราคา/หน่วย</th>
+                            <th class="py-2.5 px-3 text-right rounded-r-lg w-28">จำนวนเงิน</th>
+                        </tr>
+                    </thead>
+                    <tbody id="docTableBody" class="divide-y divide-slate-200">
+                        <!-- Dynamic Items Render -->
+                    </tbody>
+                </table>
+
+                <!-- SUMMARY FINANCIAL TABLE -->
+                <div class="flex justify-end mb-10">
+                    <div class="w-64 space-y-1.5 text-xs">
+                        <div class="flex justify-between py-1 text-slate-600">
+                            <span>รวมเงินขั้นต้น (Subtotal):</span>
+                            <span class="font-semibold text-slate-800" id="docSubtotal">฿0.00</span>
+                        </div>
+                        <div class="flex justify-between py-1 text-slate-600">
+                            <span>ภาษีมูลค่าเพิ่ม <span id="docVatRateLabel">7%</span>:</span>
+                            <span class="font-semibold text-slate-800" id="docVat">฿0.00</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-t-2 border-b-2 border-slate-900 font-bold text-sm text-slate-900">
+                            <span>จำนวนเงินรวมทั้งสิ้น:</span>
+                            <span class="text-indigo-700" id="docGrandTotal">฿0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OFFICIAL 3-SIGNATURE BLOCK -->
+                <div class="mt-12 pt-6 border-t border-slate-200">
+                    <p class="text-xs text-slate-500 font-semibold mb-6 text-center">การอนุมัติและลงนามเอกสาร (Document Approvals)</p>
+                    <div class="grid grid-cols-3 gap-6 text-center text-xs">
+                        
+                        <!-- Signature 1: Prepared By -->
+                        <div class="flex flex-col items-center justify-between h-32 p-3 border border-dashed border-slate-300 rounded-xl bg-slate-50/50">
+                            <span class="text-[11px] text-slate-500 font-medium">ผู้จัดทำรายการ / Prepared By</span>
+                            <div class="w-full border-b border-slate-400 pb-1 mt-4">
+                                <span class="font-bold text-slate-800" id="docPreparedBySignature">นายวิศวกร ช่างติดตั้ง</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400">วันที่ ......./......./.......</span>
+                        </div>
+
+                        <!-- Signature 2: Project Director -->
+                        <div class="flex flex-col items-center justify-between h-32 p-3 border border-dashed border-slate-300 rounded-xl bg-slate-50/50">
+                            <span class="text-[11px] text-slate-500 font-medium">ผู้อำนวยการโครงการ / Project Director</span>
+                            <div class="w-full border-b border-slate-400 pb-1 mt-4">
+                                <span class="text-slate-300">(......................................................)</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400">วันที่ ......./......./.......</span>
+                        </div>
+
+                        <!-- Signature 3: Purchasing Approver -->
+                        <div class="flex flex-col items-center justify-between h-32 p-3 border border-dashed border-slate-300 rounded-xl bg-slate-50/50">
+                            <span class="text-[11px] text-slate-500 font-medium">ผู้อนุมัติจัดซื้อ / Purchasing Approver</span>
+                            <div class="w-full border-b border-slate-400 pb-1 mt-4">
+                                <span class="text-slate-300">(......................................................)</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400">วันที่ ......./......./.......</span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Print Document Footer -->
+                <div class="mt-8 text-center text-[10px] text-slate-400">
+                    เอกสารนี้สร้างขึ้นโดยอัตโนมัติด้วยระบบ Prosecure PO Management System
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL: ADD / EDIT PRESET CATALOG ITEM -->
+    <div id="presetModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+            <div class="bg-slate-900 text-white px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2" id="presetModalTitle">
+                    <i class="fa-solid fa-plus text-indigo-400"></i> เพิ่ม Preset อุปกรณ์ใหม่
+                </h3>
+                <button onclick="closeModal('presetModal')" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="presetForm" onsubmit="handlePresetFormSubmit(event)" class="p-5 space-y-3 overflow-y-auto text-xs">
+                <input type="hidden" id="presetEditId" value="">
+                
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">หมวดหมู่อุปกรณ์ *</label>
+                    <select id="presetCat" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="ท่อ/ข้อต่อ">ท่อ/ข้อต่อ (Conduits & Fittings)</option>
+                        <option value="น็อต/พุก">น็อต/พุก (Screws & Anchors)</option>
+                        <option value="บล็อกไฟ/กล่องพักสาย">บล็อกไฟ/กล่องพักสาย (Junction Boxes)</option>
+                        <option value="สายไฟ/สัญญาณ">สายไฟ/สัญญาณ (Cables & Wires)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">ชื่ออุปกรณ์ *</label>
+                    <input type="text" id="presetTitle" required placeholder="เช่น ท่อ UPVC สีขาว 3/4 นิ้ว" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">รายละเอียด / สเปก</label>
+                    <input type="text" id="presetSpec" placeholder="เช่น ยาว 2.9 เมตร คุณภาพสูง กัน UV" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">ราคาต่อหน่วย (บาท) *</label>
+                        <input type="number" id="presetPrice" step="0.01" min="0" required placeholder="0.00" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">หน่วยนับ *</label>
+                        <input type="text" id="presetUnit" required placeholder="เช่น เส้น, ตัว, กล่อง" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">รูปภาพสินค้า</label>
+                    <input type="file" id="presetImgInput" accept="image/*" onchange="previewFileImage(this, 'presetImgPreview')" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100">
+                    <div class="mt-2 text-center">
+                        <img id="presetImgPreview" src="" class="h-20 w-auto mx-auto object-contain rounded-lg border border-slate-200 hidden">
+                    </div>
+                </div>
+
+                <div class="pt-3 flex justify-end space-x-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('presetModal')" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition">บันทึก Preset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD CUSTOM ONE-OFF ITEM DIRECT TO CART -->
+    <div id="customItemModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+            <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-square-plus text-indigo-200"></i> เพิ่มอุปกรณ์พิเศษลงรายการสั่งซื้อ
+                </h3>
+                <button onclick="closeModal('customItemModal')" class="text-indigo-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="customItemForm" onsubmit="handleCustomItemSubmit(event)" class="p-5 space-y-3 overflow-y-auto text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">ชื่ออุปกรณ์ / รายการ *</label>
+                    <input type="text" id="customTitle" required placeholder="เช่น ตู้ Rack 6U Depth 40cm" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">หมวดหมู่</label>
+                    <input type="text" id="customCat" placeholder="เช่น ตู้ควบคุม / อุปกรณ์เครือข่าย" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">สเปก / หมายเหตุ</label>
+                    <input type="text" id="customSpec" placeholder="เช่น กระจกนิรภัย พร้อมพัดลมระบายอากาศ" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">จำนวน *</label>
+                        <input type="number" id="customQty" value="1" min="1" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">หน่วยนับ *</label>
+                        <input type="text" id="customUnit" value="ตู้" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">ราคา/หน่วย *</label>
+                        <input type="number" id="customPrice" step="0.01" min="0" required placeholder="0.00" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">รูปภาพประกอบ</label>
+                    <input type="file" id="customImgInput" accept="image/*" onchange="previewFileImage(this, 'customImgPreview')" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100">
+                    <div class="mt-2 text-center">
+                        <img id="customImgPreview" src="" class="h-20 w-auto mx-auto object-contain rounded-lg border border-slate-200 hidden">
+                    </div>
+                </div>
+
+                <div class="pt-3 flex justify-end space-x-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('customItemModal')" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition">เพิ่มเข้าใบสั่งซื้อ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CHANGE CART ITEM IMAGE -->
+    <div id="changeImgModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-image text-indigo-400"></i> เปลี่ยนรูปภาพรายการสั่งซื้อ
+                </h3>
+                <button onclick="closeModal('changeImgModal')" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-3 text-xs">
+                <input type="hidden" id="changeImgCartIndex" value="">
+                <p class="text-slate-600 font-medium" id="changeImgItemName">ชื่อสินค้า...</p>
+                
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">เลือกรูปภาพใหม่</label>
+                    <input type="file" id="changeImgFileInput" accept="image/*" onchange="previewFileImage(this, 'changeImgModalPreview')" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100">
+                </div>
+
+                <div class="mt-2 text-center">
+                    <img id="changeImgModalPreview" src="" class="h-28 w-auto mx-auto object-contain rounded-lg border border-slate-200 hidden">
+                </div>
+
+                <div class="pt-3 flex justify-end space-x-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('changeImgModal')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">ยกเลิก</button>
+                    <button type="button" onclick="saveCartItemImageChange()" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition">อัปเดตรูปภาพ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- APPLICATION LOGIC & JAVASCRIPT -->
+    <script>
+        /* ==========================================================================
+           DEFAULT PRESET CATALOG DATA (WITH SVG EMBEDDED PLACEHOLDERS)
+           ========================================================================== */
+        const DEFAULT_PRESETS = [
+            {
+                id: 'p1',
+                title: 'ท่อ uPVC สีขาว 3/4 นิ้ว (20mm)',
+                category: 'ท่อ/ข้อต่อ',
+                spec: 'ยาว 2.9 เมตร มาตรฐาน JIS กัน UV',
+                price: 45.00,
+                unit: 'เส้น',
+                image: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%234f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/></svg>'
+            },
+            {
+                id: 'p2',
+                title: 'ข้อต่อตรง uPVC 3/4 นิ้ว',
+                category: 'ท่อ/ข้อต่อ',
+                spec: 'สีขาว เนื้อเหนียว ไม่แตกหักง่าย',
+                price: 5.50,
+                unit: 'ตัว',
+                image: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%234f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="10" x="3" y="7" rx="2"/></svg>'
+            },
+            {
+                id: 'p3',
+                title: 'พุกพลาสติกพร้อมน็อตเกลียวปล่อย #7',
+                category: 'น็อต/พุก',
+                spec: 'บรรจุกล่องละ 100 ชุด ยึดผนังแน่นหนา',
+                price: 85.00,
+                unit: 'กล่อง',
+                image: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%234f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 4 4-10 10-4-4z"/><path d="m2 22 5-5"/></svg>'
+            },
+            {
+                id: 'p4',
+                title: 'พุกเหล็ก Expand Bolt 1/4 นิ้ว',
+                category: 'น็อต/พุก',
+                spec: 'เหล็กชุบซิงค์ กันสนิม สำหรับงานหนัก',
+                price: 6.50,
+                unit: 'ตัว',
+                image: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%234f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 2v20"/></svg>'
+            },
+            {
+                id: 'p5',
+                title: 'กล่องพักสายไฟ Square Box 4x4',
+                category: 'บล็อกไฟ/กล่องพักสาย',
+                spec: 'พลาสติกกันน้ำ IP65 พร้อมยางกันน้ำ',
+                price: 35.00,
+                unit: 'ใบ',
+                image: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%234f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="3"/><path d="M9 9h6v6H9z"/></svg>'
+            },
+            {
+                id: 'p6',
+                title: 'สายสัญญาณ UTP CAT6 Outdoor',
+                category: 'สายไฟ/สัญญาณ',
+                spec: 'มีสลิง (Double Jacket) ความยาว 305m/กล่อง',
+                price: 3800.00,
+                unit: 'ม้วน',
+                image: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%234f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>'
+            },
+            {
+                id: 'p7',
+                title: 'สายไฟ THW 1x2.5 sq.mm.',
+                category: 'สายไฟ/สัญญาณ',
+                spec: 'ทองแดงแท้ 100% ยาว 100 เมตร สีขาว/ดำ',
+                price: 1150.00,
+                unit: 'ม้วน',
+                image: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%234f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path d="M6 8v8"/><path d="M18 8v8"/></svg>'
+            }
+        ];
+
+        /* ==========================================================================
+           GLOBAL APPLICATION STATE
+           ========================================================================== */
+        let state = {
+            presets: [],
+            cart: [],
+            selectedCategory: 'ทั้งหมด',
+            cartViewMode: 'table', // 'table' or 'grid'
+            projectMeta: {
+                projectName: 'โครงการติดตั้งระบบ CCTV & Network',
+                location: 'อาคารอำนวยการ ชั้น 2 กทม.',
+                poNo: 'PO-202611-001',
+                date: new Date().toISOString().split('T')[0],
+                preparedBy: 'นายวิศวกร ช่างติดตั้ง',
+                vatRate: 7,
+                isVatEnabled: true
+            }
+        };
+
+        /* ==========================================================================
+           INITIALIZATION & LOCALSTORAGE MANAGEMENT
+           ========================================================================== */
+        window.onload = function() {
+            loadPresetsFromStorage();
+            loadCartFromStorage();
+            initMetadataForm();
+            renderCategoryFilters();
+            renderCatalog();
+            renderCart();
+        };
+
+        function loadPresetsFromStorage() {
+            const stored = localStorage.getItem('prosecure_presets');
+            if (stored) {
+                try {
+                    state.presets = JSON.parse(stored);
+                } catch(e) {
+                    state.presets = [...DEFAULT_PRESETS];
+                }
+            } else {
+                state.presets = [...DEFAULT_PRESETS];
+                savePresetsToStorage();
+            }
+        }
+
+        function savePresetsToStorage() {
+            localStorage.setItem('prosecure_presets', JSON.stringify(state.presets));
+        }
+
+        function confirmResetDefaults() {
+            if (confirm('คุณต้องการคืนค่าแค็ตล็อกอุปกรณ์เป็นค่าเริ่มต้นใช่หรือไม่? (Preset ที่เพิ่มเองจะถูกลบ)')) {
+                state.presets = [...DEFAULT_PRESETS];
+                savePresetsToStorage();
+                renderCatalog();
+                showToast('คืนค่าแค็ตล็อกมาตรฐานเรียบร้อยแล้ว', 'info');
+            }
+        }
+
+        function loadCartFromStorage() {
+            const stored = localStorage.getItem('prosecure_cart');
+            if (stored) {
+                try {
+                    state.cart = JSON.parse(stored);
+                } catch(e) {
+                    state.cart = [];
+                }
+            }
+        }
+
+        function saveCartToStorage() {
+            localStorage.setItem('prosecure_cart', JSON.stringify(state.cart));
+        }
+
+        function initMetadataForm() {
+            document.getElementById('inputDate').value = state.projectMeta.date;
+            updateDocumentViews();
+        }
+
+        /* ==========================================================================
+           UI TAB SWITCHER & VIEW CONTROL
+           ========================================================================== */
+        function switchTab(tab) {
+            const workspaceView = document.getElementById('workspaceView');
+            const documentView = document.getElementById('documentView');
+            const tabBtnCatalog = document.getElementById('tabBtnCatalog');
+            const tabBtnDoc = document.getElementById('tabBtnDoc');
+
+            if (tab === 'workspace') {
+                workspaceView.classList.remove('hidden');
+                documentView.classList.add('hidden');
+                
+                tabBtnCatalog.className = "px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm";
+                tabBtnDoc.className = "px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2";
+            } else if (tab === 'document') {
+                workspaceView.classList.add('hidden');
+                documentView.classList.remove('hidden');
+
+                tabBtnDoc.className = "px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm";
+                tabBtnCatalog.className = "px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2";
+
+                renderDocumentPreview();
+            }
+        }
+
+        function toggleMetadataForm() {
+            const form = document.getElementById('metadataForm');
+            const chevron = document.getElementById('metadataChevron');
+            form.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+        }
+
+        function setCartView(mode) {
+            state.cartViewMode = mode;
+            const btnTable = document.getElementById('viewBtnTable');
+            const btnGrid = document.getElementById('viewBtnGrid');
+
+            if (mode === 'table') {
+                btnTable.className = "px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-indigo-600 shadow-sm transition";
+                btnGrid.className = "px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+            } else {
+                btnGrid.className = "px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-indigo-600 shadow-sm transition";
+                btnTable.className = "px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+            }
+            renderCart();
+        }
+
+        /* ==========================================================================
+           PRESET CATALOG LOGIC (FILTER, RENDER, CRUD)
+           ========================================================================== */
+        const CATEGORIES = ['ทั้งหมด', 'ท่อ/ข้อต่อ', 'น็อต/พุก', 'บล็อกไฟ/กล่องพักสาย', 'สายไฟ/สัญญาณ'];
+
+        function renderCategoryFilters() {
+            const container = document.getElementById('categoryFilterContainer');
+            container.innerHTML = CATEGORIES.map(cat => {
+                const isActive = state.selectedCategory === cat;
+                const activeClass = isActive 
+                    ? 'bg-indigo-600 text-white font-bold shadow-sm' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium';
+                return `<button onclick="setCategoryFilter('${cat}')" class="px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition ${activeClass}">${cat}</button>`;
+            }).join('');
+        }
+
+        function setCategoryFilter(cat) {
+            state.selectedCategory = cat;
+            renderCategoryFilters();
+            renderCatalog();
+        }
+
+        function renderCatalog() {
+            const searchVal = document.getElementById('catalogSearch').value.toLowerCase().trim();
+            const container = document.getElementById('catalogList');
+
+            const filtered = state.presets.filter(item => {
+                const matchesCat = (state.selectedCategory === 'ทั้งหมด') || (item.category === state.selectedCategory);
+                const matchesSearch = item.title.toLowerCase().includes(searchVal) || (item.spec && item.spec.toLowerCase().includes(searchVal));
+                return matchesCat && matchesSearch;
+            });
+
+            document.getElementById('catalogCountText').innerText = `แสดง ${filtered.length} รายการ`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-10 text-center text-slate-400 space-y-2">
+                        <i class="fa-solid fa-box-open text-3xl"></i>
+                        <p class="text-xs">ไม่พบอุปกรณ์ที่ตรงกับการค้นหา</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => `
+                <div class="bg-white rounded-xl p-3 border border-slate-200/90 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+                    <div class="flex items-start space-x-3">
+                        <img src="${item.image}" alt="${item.title}" class="w-12 h-12 rounded-lg object-contain bg-slate-50 border border-slate-100 p-1 flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <span class="text-[10px] bg-slate-100 text-slate-500 font-semibold px-2 py-0.5 rounded-md">${item.category}</span>
+                            <h4 class="font-bold text-slate-800 text-xs mt-1 truncate group-hover:text-indigo-600 transition" title="${item.title}">${item.title}</h4>
+                            <p class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">${item.spec || '-'}</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-indigo-600">฿${numberFormat(item.price)}</span>
+                            <span class="text-[10px] text-slate-400">/${item.unit}</span>
+                        </div>
+                        
+                        <div class="flex items-center space-x-1">
+                            <button onclick="editPreset('${item.id}')" class="text-slate-400 hover:text-indigo-600 text-xs p-1 rounded transition" title="แก้ไข Preset">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deletePreset('${item.id}')" class="text-slate-400 hover:text-rose-600 text-xs p-1 rounded transition" title="ลบ Preset">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                            <button onclick="addToCartFromPreset('${item.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded-lg font-semibold shadow-sm transition flex items-center gap-1">
+                                <i class="fa-solid fa-plus"></i> สั่งซื้อ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /* CRUD PRESET MODAL ACTIONS */
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function handlePresetFormSubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('presetEditId').value;
+            const title = document.getElementById('presetTitle').value.trim();
+            const category = document.getElementById('presetCat').value;
+            const spec = document.getElementById('presetSpec').value.trim();
+            const price = parseFloat(document.getElementById('presetPrice').value) || 0;
+            const unit = document.getElementById('presetUnit').value.trim();
+            const imgPreviewSrc = document.getElementById('presetImgPreview').src;
+
+            const defaultImg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%234f46e5" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
+            const finalImage = (imgPreviewSrc && imgPreviewSrc !== window.location.href) ? imgPreviewSrc : defaultImg;
+
+            if (editId) {
+                // Update existing preset
+                const index = state.presets.findIndex(p => p.id === editId);
+                if (index !== -1) {
+                    state.presets[index] = { ...state.presets[index], title, category, spec, price, unit, image: finalImage };
+                    showToast('อัปเดตข้อมูล Preset เรียบร้อย', 'success');
+                }
+            } else {
+                // Create new preset
+                const newPreset = {
+                    id: 'preset_' + Date.now(),
+                    title,
+                    category,
+                    spec,
+                    price,
+                    unit,
+                    image: finalImage
+                };
+                state.presets.unshift(newPreset);
+                showToast('เพิ่ม Preset ใหม่สำเร็จ', 'success');
+            }
+
+            savePresetsToStorage();
+            renderCatalog();
+            closeModal('presetModal');
+            resetForm('presetForm', 'presetImgPreview');
+        }
+
+        function editPreset(id) {
+            const item = state.presets.find(p => p.id === id);
+            if (!item) return;
+
+            document.getElementById('presetEditId').value = item.id;
+            document.getElementById('presetTitle').value = item.title;
+            document.getElementById('presetCat').value = item.category;
+            document.getElementById('presetSpec').value = item.spec || '';
+            document.getElementById('presetPrice').value = item.price;
+            document.getElementById('presetUnit').value = item.unit;
+            
+            const preview = document.getElementById('presetImgPreview');
+            preview.src = item.image;
+            preview.classList.remove('hidden');
+
+            document.getElementById('presetModalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-indigo-400"></i> แก้ไข Preset อุปกรณ์`;
+            openModal('presetModal');
+        }
+
+        function deletePreset(id) {
+            if (confirm('คุณต้องการลบ Preset อุปกรณ์นี้ใช่หรือไม่?')) {
+                state.presets = state.presets.filter(p => p.id !== id);
+                savePresetsToStorage();
+                renderCatalog();
+                showToast('ลบ Preset เรียบร้อย', 'info');
+            }
+        }
+
+        /* ==========================================================================
+           CART / ORDER MANAGEMENT LOGIC
+           ========================================================================== */
+        function addToCartFromPreset(presetId) {
+            const preset = state.presets.find(p => p.id === presetId);
+            if (!preset) return;
+
+            const existingIndex = state.cart.findIndex(c => c.presetId === presetId);
+            if (existingIndex !== -1) {
+                state.cart[existingIndex].qty += 1;
+            } else {
+                state.cart.push({
+                    cartId: 'cart_' + Date.now() + Math.random().toString(36).substr(2, 4),
+                    presetId: preset.id,
+                    title: preset.title,
+                    category: preset.category,
+                    spec: preset.spec,
+                    price: preset.price,
+                    unit: preset.unit,
+                    image: preset.image,
+                    qty: 1,
+                    note: ''
+                });
+            }
+
+            saveCartToStorage();
+            renderCart();
+            showToast(`เพิ่ม "${preset.title}" ลงรายการเรียบร้อย`, 'success');
+        }
+
+        function handleCustomItemSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('customTitle').value.trim();
+            const category = document.getElementById('customCat').value.trim() || 'อุปกรณ์พิเศษ';
+            const spec = document.getElementById('customSpec').value.trim();
+            const qty = parseFloat(document.getElementById('customQty').value) || 1;
+            const unit = document.getElementById('customUnit').value.trim() || 'ชิ้น';
+            const price = parseFloat(document.getElementById('customPrice').value) || 0;
+            const imgPreviewSrc = document.getElementById('customImgPreview').src;
+
+            const defaultImg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%234f46e5" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>';
+            const finalImage = (imgPreviewSrc && imgPreviewSrc !== window.location.href) ? imgPreviewSrc : defaultImg;
+
+            state.cart.push({
+                cartId: 'cart_custom_' + Date.now(),
+                presetId: null,
+                title,
+                category,
+                spec,
+                price,
+                unit,
+                image: finalImage,
+                qty,
+                note: 'อุปกรณ์สั่งเพิ่มพิเศษ'
+            });
+
+            saveCartToStorage();
+            renderCart();
+            closeModal('customItemModal');
+            resetForm('customItemForm', 'customImgPreview');
+            showToast('เพิ่มอุปกรณ์พิเศษเรียบร้อย', 'success');
+        }
+
+        function updateCartQty(index, delta) {
+            if (state.cart[index]) {
+                state.cart[index].qty += delta;
+                if (state.cart[index].qty <= 0) {
+                    state.cart.splice(index, 1);
+                }
+                saveCartToStorage();
+                renderCart();
+            }
+        }
+
+        function updateCartQtyDirect(index, val) {
+            const qty = parseFloat(val);
+            if (!isNaN(qty) && qty > 0) {
+                state.cart[index].qty = qty;
+            } else {
+                state.cart.splice(index, 1);
+            }
+            saveCartToStorage();
+            renderCart();
+        }
+
+        function updateCartPriceDirect(index, val) {
+            const price = parseFloat(val);
+            if (!isNaN(price) && price >= 0) {
+                state.cart[index].price = price;
+                saveCartToStorage();
+                calculateTotals();
+            }
+        }
+
+        function updateCartSpecDirect(index, val) {
+            if (state.cart[index]) {
+                state.cart[index].spec = val;
+                saveCartToStorage();
+            }
+        }
+
+        function removeFromCart(index) {
+            state.cart.splice(index, 1);
+            saveCartToStorage();
+            renderCart();
+            showToast('ลบรายการสั่งซื้อแล้ว', 'info');
+        }
+
+        function clearCart() {
+            if (state.cart.length === 0) return;
+            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างรายการสั่งซื้อทั้งหมด?')) {
+                state.cart = [];
+                saveCartToStorage();
+                renderCart();
+                showToast('ล้างรายการสั่งซื้อทั้งหมดเรียบร้อย', 'info');
+            }
+        }
+
+        /* CHANGE IMAGE ON EXISTING CART ITEM */
+        function openChangeImageModal(index) {
+            const item = state.cart[index];
+            if (!item) return;
+
+            document.getElementById('changeImgCartIndex').value = index;
+            document.getElementById('changeImgItemName').innerText = item.title;
+            
+            const preview = document.getElementById('changeImgModalPreview');
+            preview.src = item.image;
+            preview.classList.remove('hidden');
+
+            openModal('changeImgModal');
+        }
+
+        function saveCartItemImageChange() {
+            const index = document.getElementById('changeImgCartIndex').value;
+            const previewSrc = document.getElementById('changeImgModalPreview').src;
+
+            if (index !== "" && state.cart[index] && previewSrc) {
+                state.cart[index].image = previewSrc;
+                saveCartToStorage();
+                renderCart();
+                closeModal('changeImgModal');
+                showToast('อัปเดตรูปภาพสินค้าเรียบร้อย', 'success');
+            }
+        }
+
+        /* ==========================================================================
+           RENDER CART VIEW (TABLE VS GRID) & FINANCIAL CALCULATIONS
+           ========================================================================== */
+        function renderCart() {
+            const container = document.getElementById('cartContainer');
+            document.getElementById('cartCountBadge').innerText = state.cart.length;
+
+            if (state.cart.length === 0) {
+                container.innerHTML = `
+                    <div class="py-16 text-center text-slate-400 space-y-3">
+                        <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-300 text-2xl">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-slate-600">ยังไม่มีรายการสั่งซื้ออุปกรณ์</p>
+                        <p class="text-xs text-slate-400">คลิกปุ่ม "+ สั่งซื้อ" บนการ์ดแค็ตล็อกด้านซ้ายเพื่อเพิ่มรายการ</p>
+                    </div>
+                `;
+                calculateTotals();
+                return;
+            }
+
+            if (state.cartViewMode === 'table') {
+                container.innerHTML = `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left border-collapse">
+                            <thead>
+                                <tr class="text-slate-400 border-b border-slate-200 font-semibold uppercase tracking-wider text-[10px]">
+                                    <th class="py-2.5 px-2">รูป</th>
+                                    <th class="py-2.5 px-2">รายการ / สเปก</th>
+                                    <th class="py-2.5 px-2 text-center">จำนวน</th>
+                                    <th class="py-2.5 px-2 text-right">ราคา/หน่วย (บาท)</th>
+                                    <th class="py-2.5 px-2 text-right">รวมเงิน</th>
+                                    <th class="py-2.5 px-2 text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${state.cart.map((item, idx) => `
+                                    <tr class="hover:bg-slate-50/80 transition">
+                                        <td class="py-3 px-2">
+                                            <div class="relative group w-10 h-10">
+                                                <img src="${item.image}" alt="${item.title}" class="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-200 p-0.5">
+                                                <button onclick="openChangeImageModal(${idx})" class="absolute inset-0 bg-slate-900/60 text-white rounded-lg opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px]" title="เปลี่ยนรูป">
+                                                    <i class="fa-solid fa-camera"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-2">
+                                            <div class="font-bold text-slate-800 text-xs">${item.title}</div>
+                                            <input type="text" value="${escapeHtml(item.spec || '')}" onchange="updateCartSpecDirect(${idx}, this.value)" placeholder="ระบุสเปก..." class="w-full bg-transparent text-[11px] text-slate-500 border-b border-transparent hover:border-slate-300 focus:border-indigo-500 focus:bg-white outline-none transition py-0.5 mt-0.5">
+                                        </td>
+                                        <td class="py-3 px-2 text-center">
+                                            <div class="inline-flex items-center space-x-1 border border-slate-200 rounded-lg bg-white p-0.5">
+                                                <button onclick="updateCartQty(${idx}, -1)" class="w-5 h-5 rounded hover:bg-slate-100 text-slate-600 font-bold flex items-center justify-center">-</button>
+                                                <input type="number" value="${item.qty}" min="1" onchange="updateCartQtyDirect(${idx}, this.value)" class="w-10 text-center text-xs font-bold text-slate-800 outline-none">
+                                                <button onclick="updateCartQty(${idx}, 1)" class="w-5 h-5 rounded hover:bg-slate-100 text-slate-600 font-bold flex items-center justify-center">+</button>
+                                            </div>
+                                            <span class="text-[10px] text-slate-400 block mt-0.5">${item.unit}</span>
+                                        </td>
+                                        <td class="py-3 px-2 text-right">
+                                            <input type="number" step="0.01" value="${item.price}" onchange="updateCartPriceDirect(${idx}, this.value)" class="w-20 text-right font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md p-1 outline-none focus:ring-1 focus:ring-indigo-500">
+                                        </td>
+                                        <td class="py-3 px-2 text-right font-bold text-slate-900">
+                                            ฿${numberFormat(item.qty * item.price)}
+                                        </td>
+                                        <td class="py-3 px-2 text-center">
+                                            <button onclick="removeFromCart(${idx})" class="text-slate-400 hover:text-rose-600 transition p-1">
+                                                <i class="fa-solid fa-xmark text-sm"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                // Grid View
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        ${state.cart.map((item, idx) => `
+                            <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex flex-col justify-between space-y-2">
+                                <div class="flex items-start space-x-3">
+                                    <div class="relative group w-12 h-12 flex-shrink-0">
+                                        <img src="${item.image}" alt="${item.title}" class="w-12 h-12 rounded-lg object-contain bg-white border border-slate-200 p-1">
+                                        <button onclick="openChangeImageModal(${idx})" class="absolute inset-0 bg-slate-900/60 text-white rounded-lg opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-xs" title="เปลี่ยนรูป">
+                                            <i class="fa-solid fa-camera"></i>
+                                        </button>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex justify-between items-start">
+                                            <h4 class="font-bold text-slate-800 text-xs truncate">${item.title}</h4>
+                                            <button onclick="removeFromCart(${idx})" class="text-slate-400 hover:text-rose-500 text-xs pl-1">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        </div>
+                                        <p class="text-[11px] text-slate-400 truncate mt-0.5">${item.spec || '-'}</p>
+                                    </div>
+                                </div>
+
+                                <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs">
+                                    <div class="flex items-center space-x-1 border border-slate-200 rounded-lg bg-white p-0.5">
+                                        <button onclick="updateCartQty(${idx}, -1)" class="w-5 h-5 rounded hover:bg-slate-100 text-slate-600 font-bold">-</button>
+                                        <input type="number" value="${item.qty}" min="1" onchange="updateCartQtyDirect(${idx}, this.value)" class="w-8 text-center text-xs font-bold text-slate-800 outline-none">
+                                        <button onclick="updateCartQty(${idx}, 1)" class="w-5 h-5 rounded hover:bg-slate-100 text-slate-600 font-bold">+</button>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-[10px] text-slate-400 block">@฿${numberFormat(item.price)}/${item.unit}</span>
+                                        <span class="font-bold text-indigo-600">฿${numberFormat(item.qty * item.price)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            const subtotal = state.cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+            const vatRate = state.projectMeta.isVatEnabled ? state.projectMeta.vatRate : 0;
+            const vatAmount = subtotal * (vatRate / 100);
+            const grandTotal = subtotal + vatAmount;
+
+            document.getElementById('summarySubtotal').innerText = '฿' + numberFormat(subtotal);
+            document.getElementById('summaryVat').innerText = '฿' + numberFormat(vatAmount);
+            document.getElementById('summaryVatLabel').innerText = state.projectMeta.isVatEnabled ? `(${vatRate}%)` : '(ปิดใช้งาน)';
+            document.getElementById('summaryGrandTotal').innerText = '฿' + numberFormat(grandTotal);
+        }
+
+        /* PROJECT METADATA UPDATE SYNC */
+        function updateProjectMeta() {
+            state.projectMeta.projectName = document.getElementById('inputProjectName').value;
+            state.projectMeta.location = document.getElementById('inputLocation').value;
+            state.projectMeta.poNo = document.getElementById('inputPoNo').value;
+            state.projectMeta.date = document.getElementById('inputDate').value;
+            state.projectMeta.preparedBy = document.getElementById('inputPreparedBy').value;
+            state.projectMeta.vatRate = parseFloat(document.getElementById('inputVatRate').value) || 0;
+            state.projectMeta.isVatEnabled = document.getElementById('inputVatToggle').checked;
+
+            updateDocumentViews();
+            calculateTotals();
+        }
+
+        function updateDocumentViews() {
+            document.getElementById('headerProjectName').innerText = 'โครงการ: ' + state.projectMeta.projectName;
+            document.getElementById('headerPoNo').innerText = state.projectMeta.poNo;
+
+            document.getElementById('docProjectName').innerText = state.projectMeta.projectName;
+            document.getElementById('docLocation').innerText = state.projectMeta.location;
+            document.getElementById('docPoNo').innerText = state.projectMeta.poNo;
+            document.getElementById('docDate').innerText = formatDateThai(state.projectMeta.date);
+            document.getElementById('docPreparedBySignature').innerText = state.projectMeta.preparedBy;
+        }
+
+        /* ==========================================================================
+           DOCUMENT GENERATION & EXPORT SYSTEM (PDF/PRINT, CSV, COPY SUMMARY)
+           ========================================================================== */
+        function renderDocumentPreview() {
+            updateDocumentViews();
+            const body = document.getElementById('docTableBody');
+            
+            if (state.cart.length === 0) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-400 text-xs">ไม่มีรายการอุปกรณ์ในใบสั่งซื้อ</td>
+                    </tr>
+                `;
+            } else {
+                body.innerHTML = state.cart.map((item, idx) => `
+                    <tr class="border-b border-slate-200/80">
+                        <td class="py-2.5 px-3 text-center text-slate-500 font-medium">${idx + 1}</td>
+                        <td class="py-2.5 px-3 text-center">
+                            <img src="${item.image}" class="w-8 h-8 rounded object-contain mx-auto bg-slate-50 border border-slate-200">
+                        </td>
+                        <td class="py-2.5 px-3">
+                            <div class="font-bold text-slate-800">${item.title}</div>
+                            <div class="text-[10px] text-slate-500">${item.spec || '-'}</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center font-bold text-slate-800">${item.qty}</td>
+                        <td class="py-2.5 px-3 text-center text-slate-600">${item.unit}</td>
+                        <td class="py-2.5 px-3 text-right text-slate-700">฿${numberFormat(item.price)}</td>
+                        <td class="py-2.5 px-3 text-right font-bold text-slate-900">฿${numberFormat(item.qty * item.price)}</td>
+                    </tr>
+                `).join('');
+            }
+
+            // Subtotal calculations for document
+            const subtotal = state.cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+            const vatRate = state.projectMeta.isVatEnabled ? state.projectMeta.vatRate : 0;
+            const vatAmount = subtotal * (vatRate / 100);
+            const grandTotal = subtotal + vatAmount;
+
+            document.getElementById('docSubtotal').innerText = '฿' + numberFormat(subtotal);
+            document.getElementById('docVat').innerText = '฿' + numberFormat(vatAmount);
+            document.getElementById('docVatRateLabel').innerText = state.projectMeta.isVatEnabled ? `${vatRate}%` : '0%';
+            document.getElementById('docGrandTotal').innerText = '฿' + numberFormat(grandTotal);
+        }
+
+        /* EXPORT CSV WITH UTF-8 BOM FOR THAI LANGUAGE SUPPORT IN EXCEL */
+        function exportCSV() {
+            if (state.cart.length === 0) {
+                showToast('ไม่มีรายการสั่งซื้อสำหรับส่งออก CSV', 'warning');
+                return;
+            }
+
+            // BOM character for Thai UTF-8 in Microsoft Excel
+            let csvContent = "\uFEFF";
+            
+            // Header information
+            csvContent += `ใบสั่งซื้ออุปกรณ์ Prosecure (PO: ${state.projectMeta.poNo})\n`;
+            csvContent += `โครงการ,${escapeCSV(state.projectMeta.projectName)}\n`;
+            csvContent += `สถานที่ติดตั้ง,${escapeCSV(state.projectMeta.location)}\n`;
+            csvContent += `วันที่,${state.projectMeta.date}\n`;
+            csvContent += `ผู้จัดทำ,${escapeCSV(state.projectMeta.preparedBy)}\n\n`;
+
+            // Table Headers
+            csvContent += `ลำดับ,หมวดหมู่,ชื่ออุปกรณ์,สเปก/รายละเอียด,จำนวน,หน่วยนับ,ราคาต่อหน่วย,จำนวนเงินรวม\n`;
+
+            // Data Rows
+            let subtotal = 0;
+            state.cart.forEach((item, idx) => {
+                const total = item.qty * item.price;
+                subtotal += total;
+                csvContent += `${idx + 1},${escapeCSV(item.category)},${escapeCSV(item.title)},${escapeCSV(item.spec)},${item.qty},${escapeCSV(item.unit)},${item.price.toFixed(2)},${total.toFixed(2)}\n`;
+            });
+
+            // Financial Summary
+            const vatRate = state.projectMeta.isVatEnabled ? state.projectMeta.vatRate : 0;
+            const vatAmount = subtotal * (vatRate / 100);
+            const grandTotal = subtotal + vatAmount;
+
+            csvContent += `,,,,,รวมเงินขั้นต้น,,${subtotal.toFixed(2)}\n`;
+            csvContent += `,,,,,ภาษีมูลค่าเพิ่ม (${vatRate}%),,${vatAmount.toFixed(2)}\n`;
+            csvContent += `,,,,,จำนวนเงินรวมทั้งสิ้น,,${grandTotal.toFixed(2)}\n`;
+
+            // Blob download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `PO_${state.projectMeta.poNo || 'Prosecure'}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('ส่งออกไฟล์ CSV (UTF-8) สำเร็จ', 'success');
+        }
+
+        /* QUICK COPY SUMMARY FOR LINE / EMAIL */
+        function copySummaryText() {
+            if (state.cart.length === 0) {
+                showToast('ไม่มีรายการสั่งซื้อเพื่อคัดลอกสรุป', 'warning');
+                return;
+            }
+
+            const subtotal = state.cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+            const vatRate = state.projectMeta.isVatEnabled ? state.projectMeta.vatRate : 0;
+            const vatAmount = subtotal * (vatRate / 100);
+            const grandTotal = subtotal + vatAmount;
+
+            let text = `📦 *สรุปรายการสั่งซื้ออุปกรณ์ (Prosecure)*\n`;
+            text += `🔹 โครงการ: ${state.projectMeta.projectName}\n`;
+            text += `🔹 เลขที่ PO: ${state.projectMeta.poNo}\n`;
+            text += `🔹 สถานที่: ${state.projectMeta.location}\n`;
+            text += `-----------------------------------\n`;
+
+            state.cart.forEach((item, idx) => {
+                text += `${idx + 1}. ${item.title}\n`;
+                text += `   👉 จำนวน: ${item.qty} ${item.unit} | ฿${numberFormat(item.price)}/หน่วย = ฿${numberFormat(item.qty * item.price)}\n`;
+            });
+
+            text += `-----------------------------------\n`;
+            text += `💰 รวมเงินขั้นต้น: ฿${numberFormat(subtotal)}\n`;
+            if (state.projectMeta.isVatEnabled) {
+                text += `🧾 ภาษี VAT (${vatRate}%): ฿${numberFormat(vatAmount)}\n`;
+            }
+            text += `✨ *ยอดสุทธิรวมทั้งสิ้น: ฿${numberFormat(grandTotal)}*\n`;
+            text += `ผู้จัดทำ: ${state.projectMeta.preparedBy}`;
+
+            // Copy to clipboard using execCommand or Clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('คัดลอกข้อความสรุปเรียบร้อย! พร้อมวางใน LINE/Email', 'success');
+                }).catch(() => fallbackCopyText(text));
+            } else {
+                fallbackCopyText(text);
+            }
+        }
+
+        function fallbackCopyText(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showToast('คัดลอกข้อความสรุปเรียบร้อยแล้ว', 'success');
+        }
+
+        /* ==========================================================================
+           UTILITY FUNCTIONS (TOASTS, FILE READERS, FORMATTERS)
+           ========================================================================== */
+        function previewFileImage(input, previewElementId) {
+            const preview = document.getElementById(previewElementId);
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            let bgClass = 'bg-slate-900 text-white';
+            let icon = 'fa-circle-info';
+
+            if (type === 'success') {
+                bgClass = 'bg-emerald-600 text-white';
+                icon = 'fa-circle-check';
+            } else if (type === 'warning') {
+                bgClass = 'bg-amber-500 text-white';
+                icon = 'fa-triangle-exclamation';
+            } else if (type === 'error') {
+                bgClass = 'bg-rose-600 text-white';
+                icon = 'fa-circle-xmark';
+            }
+
+            toast.className = `px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-xs font-semibold transform transition-all duration-300 opacity-0 translate-y-2 ${bgClass}`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function resetForm(formId, previewImgId) {
+            document.getElementById(formId).reset();
+            const preview = document.getElementById(previewImgId);
+            if (preview) {
+                preview.src = '';
+                preview.classList.add('hidden');
+            }
+            const editId = document.getElementById('presetEditId');
+            if (editId) editId.value = '';
+        }
+
+        function numberFormat(val) {
+            return Number(val || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatDateThai(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function escapeCSV(str) {
+            if (!str) return '""';
+            return '"' + String(str).replace(/"/g, '""') + '"';
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>
